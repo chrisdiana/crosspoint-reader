@@ -1,8 +1,8 @@
-# CrossPoint User Guide
+# CrossPoint Apps User Guide
 
-Welcome to the **CrossPoint** firmware. This guide outlines the hardware controls, navigation, and reading features of the device.
+Welcome to the **CrossPoint Apps** firmware. This guide outlines the hardware controls, navigation, reading features, and bundled applications of the device.
 
-- [CrossPoint User Guide](#crosspoint-user-guide)
+- [CrossPoint Apps User Guide](#crosspoint-apps-user-guide)
   - [1. Hardware Overview](#1-hardware-overview)
     - [Button Layout](#button-layout)
   - [2. Power \& Startup](#2-power--startup)
@@ -25,6 +25,7 @@ Welcome to the **CrossPoint** firmware. This guide outlines the hardware control
       - [3.6.7 KOReader Sync Quick Setup](#367-koreader-sync-quick-setup)
     - [3.7 Sleep Screen](#37-sleep-screen)
     - [3.8 Custom Fonts (SD Card)](#38-custom-fonts-sd-card)
+    - [3.9 Applications](#39-applications)
   - [4. Reading Mode](#4-reading-mode)
     - [Page Turning](#page-turning)
     - [Chapter Navigation](#chapter-navigation)
@@ -421,6 +422,24 @@ There are three ways to install fonts:
 Once installed, custom fonts appear in **Settings → Reader → Font Family** alongside the built-in fonts.
 
 See [docs/sd-card-fonts.md](./docs/sd-card-fonts.md) for full installation details and SD card folder structure.
+
+---
+
+### 3.9 Applications
+
+CrossPoint Apps includes a robust suite of applications that extend the functionality of the device. You can access these from the Home Screen or App Registry (depending on the theme).
+
+- **Calculator**: A fully functional, e-ink optimized calculator for quick math.
+- **Weather**: View local forecasts. Connects to Wi-Fi to fetch data, which is then cached locally for offline viewing.
+- **Sudoku**: Play randomly generated Sudoku puzzles. Fully playable offline.
+- **Reddit**: Read your favorite subreddits. Connect to Wi-Fi to refresh the feed, and the text-heavy posts and comments are cached to your SD card for reading anytime offline.
+- **Wikipedia**: Search for topics and download complete, text-only Wikipedia articles to your SD card for offline reference.
+- **Chess**: A fully featured chess engine. Play against the computer directly on your e-reader.
+- **Dice & 8-Ball**: A handy utility for tabletop gamers. Roll D6, D20, spin arrows, or consult the Magic 8-Ball.
+- **RSS Feed**: Subscribe to your favorite blogs and news sites. Articles are downloaded and cached for distraction-free, offline reading using the native text reader engine.
+
+**Offline-First Paradigm**
+Apps like Reddit, Wikipedia, and RSS Feed are designed to be "offline-first". This means they will not immediately drain your battery by constantly connecting to Wi-Fi. You must manually press the **Refresh** button within these apps to connect and download the latest data. Once downloaded, the text is cached to your SD card, allowing you to disconnect from Wi-Fi and read the content seamlessly offline.
 
 ---
 

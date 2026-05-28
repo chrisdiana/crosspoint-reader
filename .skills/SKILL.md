@@ -1,7 +1,7 @@
-# CrossPoint Reader Development Guide
+# CrossPoint Apps Development Guide
 
 Project: Open-source e-reader firmware for Xteink X4 (ESP32-C3)
-Mission: Provide a lightweight, high-performance reading experience focused on EPUB rendering on constrained hardware.
+Mission: Provide a lightweight, high-performance reading experience focused on EPUB rendering and offline-first apps on constrained hardware.
 
 ## AI Agent Identity and Cognitive Rules
 * Role: Senior Embedded Systems Engineer (ESP-IDF/Arduino-ESP32 specialized).
@@ -919,4 +919,30 @@ struct PageLine {
 
 ---
 
-Philosophy: We are building a dedicated e-reader, not a Swiss Army knife. If a feature adds RAM pressure without significantly improving the reading experience, it is Out of Scope.
+Philosophy: We are building a dedicated e-reader equipped with a community of offline-first applications. If a feature or app adds RAM pressure or drains battery via continuous networking, it is Out of Scope.
+
+---
+
+## App Development Guidelines
+
+CrossPoint Apps extends the e-reader with community-driven utilities. When building a new app, you must adhere to the following strict guidelines:
+
+### 1. Offline-First Architecture
+Apps must not rely on constant Wi-Fi polling. Background tasks drain the ESP32-C3's limited battery.
+- **Data Fetching:** Only connect to Wi-Fi when explicitly requested by the user (e.g., via a "Refresh" button) or if local cache is completely absent.
+- **Caching:** Save downloaded data (JSON, HTML text) to the SD card.
+- **Reading:** Serve the app's content from the SD card cache by default.
+
+### 2. E-ink Constraints
+- **Single Buffer:** The UI renders to a single 48KB framebuffer. Use `renderer.clearScreen()` sparingly to avoid full-screen flashing.
+- **No Animations:** Do not use moving elements, scrolling tickertapes, or high-framerate transitions. Rely on pagination and static layout updates.
+- **Drawing:** Use the `GfxRenderer` primitives (`drawText`, `drawRect`, `fillCircle`).
+
+### 3. Leveraging Existing Tech
+- If your app displays long-form text (like RSS articles or Reddit posts), you do not need to write a custom text renderer. Save the text or simplified HTML to the SD card and launch a `TxtReaderActivity` pointing to that file.
+- The `TxtReaderActivity` uses the highly optimized `lib/Txt/TxtParser.h`, which handles pagination, text wrapping, and fonts with zero heap allocation overhead.
+
+### 4. App Registration
+1. Create your app class inheriting from `Activity` in `src/activities/your_app/YourAppActivity.h`.
+2. Add your implementation to `src/activities/your_app/YourAppActivity.cpp`.
+3. Register your app in `src/activities/AppRegistry.cpp` by adding it to the `apps` vector with an appropriate `UIIcon`.
