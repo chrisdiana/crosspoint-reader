@@ -947,7 +947,7 @@ void RssActivity::loop() {
           int retries = 3;
           
           while (retries > 0) {
-            GUI.drawPopup(renderer, ("Downloading (attempt " + std::to_string(4 - retries) + ")...").c_str());
+            GUI.drawPopup(renderer, "Downloading...");
             
             auto result = HttpDownloader::downloadToFile(item.link.c_str(), tempPath.c_str(), nullptr, nullptr, "", "");
             if (result == HttpDownloader::OK) {

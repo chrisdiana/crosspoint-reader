@@ -72,17 +72,14 @@ void DiceActivity::roll() {
     case DiceMode::D6:
       lastRollD6 = 1 + (rand() % 6);
       break;
-    case DiceMode::Coin:
-      lastRollCoinHeads = (rand() % 2 == 0);
-      break;
-    case DiceMode::Random10:
-      lastRollRandom10 = rand() % 11;
-      break;
     case DiceMode::Arrow:
-      lastRollArrowDirection = rand() % 8;
+      lastRollArrowAngle = rand() % 360;
       break;
     case DiceMode::D20:
       lastRollD20 = 1 + (rand() % 20);
+      break;
+    case DiceMode::Magic8:
+      lastRollMagic8 = rand() % 20; // 20 standard responses
       break;
   }
 }
@@ -94,12 +91,18 @@ void DiceActivity::loop() {
   }
 
   if (mappedInput.wasReleased(MappedInputManager::Button::Left)) {
-    currentMode = static_cast<DiceMode>((static_cast<int>(currentMode) - 1 + 5) % 5);
+    currentMode = static_cast<DiceMode>((static_cast<int>(currentMode) - 1 + 4) % 4);
     requestUpdate();
   } else if (mappedInput.wasReleased(MappedInputManager::Button::Right)) {
-    currentMode = static_cast<DiceMode>((static_cast<int>(currentMode) + 1) % 5);
+    currentMode = static_cast<DiceMode>((static_cast<int>(currentMode) + 1) % 4);
     requestUpdate();
   } else if (mappedInput.wasReleased(MappedInputManager::Button::Confirm)) {
+    {
+      RenderLock lock;
+      GUI.drawPopup(renderer, "Rolling...");
+      renderer.displayBuffer();
+    }
+    delay(400); // Wait 0.4s with the overlay visible
     roll();
     requestUpdate();
   }
@@ -120,37 +123,28 @@ void DiceActivity::drawD6(int x, int y, int size, int value) {
   renderer.drawText(NOTOSANS_48_EMOJI_FONT_ID, x - tW / 2, y - tH / 2, dieStr, true);
 }
 
-void DiceActivity::drawCoin(int x, int y, int size, bool heads) {
+void DiceActivity::drawArrow(int x, int y, int size, int angle) {
+  float rad = angle * (float)M_PI / 180.0f;
   int radius = size / 2;
-  // Double circle outline
-  drawCircle(renderer, x, y, radius, 1, true);
-  fillCircle(renderer, x, y, radius - 4, false);
-
-  std::string txt = heads ? "HEADS" : "TAILS";
-  int tW = renderer.getTextWidth(NOTOSANS_18_FONT_ID, txt.c_str());
-  int tH = renderer.getTextHeight(NOTOSANS_18_FONT_ID);
-  renderer.drawText(NOTOSANS_18_FONT_ID, x - tW / 2, y - tH / 2, txt.c_str(), true, EpdFontFamily::BOLD);
-
-  // Decorative coin star
-  fillCircle(renderer, x, y - radius / 2, 4, true);
-  fillCircle(renderer, x, y + radius / 2, 4, true);
-}
-
-void DiceActivity::drawArrow(int x, int y, int size, int direction) {
-  const char* arrowStr = "";
-  switch (direction) {
-    case 0: arrowStr = "\u2191"; break; // Up
-    case 1: arrowStr = "\u2197"; break; // Up-Right
-    case 2: arrowStr = "\u2192"; break; // Right
-    case 3: arrowStr = "\u2198"; break; // Down-Right
-    case 4: arrowStr = "\u2193"; break; // Down
-    case 5: arrowStr = "\u2199"; break; // Down-Left
-    case 6: arrowStr = "\u2190"; break; // Left
-    case 7: arrowStr = "\u2196"; break; // Up-Left
-  }
-  int tW = renderer.getTextWidth(NOTOSANS_48_EMOJI_FONT_ID, arrowStr);
-  int tH = renderer.getTextHeight(NOTOSANS_48_EMOJI_FONT_ID);
-  renderer.drawText(NOTOSANS_48_EMOJI_FONT_ID, x - tW / 2, y - tH / 2, arrowStr, true);
+  
+  int endX = x + (int)(cosf(rad) * radius);
+  int endY = y + (int)(sinf(rad) * radius);
+  
+  // Arrow shaft
+  renderer.drawLine(x, y, endX, endY, 6, true);
+  
+  // Arrow head
+  float headLen = 20.0f;
+  float arrowAngle1 = rad + (float)M_PI * 0.85f;
+  float arrowAngle2 = rad - (float)M_PI * 0.85f;
+  
+  int h1X = endX + (int)(cosf(arrowAngle1) * headLen);
+  int h1Y = endY + (int)(sinf(arrowAngle1) * headLen);
+  int h2X = endX + (int)(cosf(arrowAngle2) * headLen);
+  int h2Y = endY + (int)(sinf(arrowAngle2) * headLen);
+  
+  renderer.drawLine(endX, endY, h1X, h1Y, 4, true);
+  renderer.drawLine(endX, endY, h2X, h2Y, 4, true);
 }
 
 void DiceActivity::drawD20(int x, int y, int size, int value) {
@@ -175,14 +169,50 @@ void DiceActivity::drawD20(int x, int y, int size, int value) {
   renderer.drawLine(px[1], py[1], px[4], py[4], 1, true); 
   renderer.drawLine(px[2], py[2], px[5], py[5], 1, true);
 
-  // Draw center shield for number
-  drawCircle(renderer, x, y, 22, 1, false);
-  fillCircle(renderer, x, y, 21, true);
+  // Draw center shield for number (larger radius)
+  drawCircle(renderer, x, y, 28, 1, false);
+  fillCircle(renderer, x, y, 27, true);
 
   std::string txt = std::to_string(value);
   int tW = renderer.getTextWidth(NOTOSANS_18_FONT_ID, txt.c_str());
   int tH = renderer.getTextHeight(NOTOSANS_18_FONT_ID);
-  renderer.drawText(NOTOSANS_18_FONT_ID, x - tW / 2, y - tH / 2, txt.c_str(), false, EpdFontFamily::BOLD);
+  // Adjusted Y offset for visual centering
+  renderer.drawText(NOTOSANS_18_FONT_ID, x - tW / 2, y - tH / 2 - 2, txt.c_str(), false, EpdFontFamily::BOLD);
+}
+
+void DiceActivity::drawMagic8(int x, int y, int size, int responseIndex) {
+  int radius = size / 2;
+  fillCircle(renderer, x, y, radius, true);
+  fillCircle(renderer, x, y, radius - 6, true);
+  
+  // Draw inner white triangle/circle for text
+  fillCircle(renderer, x, y, radius - 30, false);
+  drawCircle(renderer, x, y, radius - 30, 2, true);
+
+  const char* responses[] = {
+    "It is\ncertain", "It is\ndecidedly\nso", "Without a\ndoubt", "Yes\ndefinitely", "You may\nrely on it",
+    "As I see it,\nyes", "Most\nlikely", "Outlook\ngood", "Yes", "Signs point\nto yes",
+    "Reply hazy,\ntry again", "Ask again\nlater", "Better not\ntell you\nnow", "Cannot\npredict\nnow", "Concentrate\nand ask\nagain",
+    "Don't\ncount on it", "My reply\nis no", "My sources\nsay no", "Outlook\nnot so good", "Very\ndoubtful"
+  };
+
+  std::string txt = responses[responseIndex];
+  
+  // Basic line breaking rendering
+  int yOffset = y - 20; // Start roughly near the top of the inner circle
+  size_t start = 0;
+  size_t end = txt.find('\n');
+  while (end != std::string::npos) {
+    std::string line = txt.substr(start, end - start);
+    int tW = renderer.getTextWidth(SMALL_FONT_ID, line.c_str());
+    renderer.drawText(SMALL_FONT_ID, x - tW / 2, yOffset, line.c_str(), true);
+    yOffset += renderer.getTextHeight(SMALL_FONT_ID) + 2;
+    start = end + 1;
+    end = txt.find('\n', start);
+  }
+  std::string line = txt.substr(start);
+  int tW = renderer.getTextWidth(SMALL_FONT_ID, line.c_str());
+  renderer.drawText(SMALL_FONT_ID, x - tW / 2, yOffset, line.c_str(), true);
 }
 
 void DiceActivity::render(RenderLock&&) {
@@ -196,10 +226,10 @@ void DiceActivity::render(RenderLock&&) {
 
   // Draw tabs bar
   const int tabsY = metrics.topPadding + metrics.headerHeight + 20;
-  const int tabW = (pageWidth - 40) / 5;
-  const std::string tabNames[5] = { "D6", "Coin", "0-10", "Arrow", "D20" };
+  const int tabW = (pageWidth - 40) / 4;
+  const std::string tabNames[4] = { "D6", "Arrow", "D20", "8-Ball" };
 
-  for (int i = 0; i < 5; i++) {
+  for (int i = 0; i < 4; i++) {
     bool active = (currentMode == static_cast<DiceMode>(i));
     int tx = 20 + i * tabW;
     renderer.drawRoundedRect(tx + 2, tabsY, tabW - 4, 30, 1, 5, active);
@@ -222,27 +252,17 @@ void DiceActivity::render(RenderLock&&) {
       drawD6(cx, cy, 120, lastRollD6);
       renderer.drawCenteredText(UI_12_FONT_ID, cardY + cardH - 45, "Press Confirm to Roll", true, EpdFontFamily::REGULAR);
       break;
-    case DiceMode::Coin:
-      drawCoin(cx, cy, 140, lastRollCoinHeads);
-      renderer.drawCenteredText(UI_12_FONT_ID, cardY + cardH - 45, "Press Confirm to Flip", true, EpdFontFamily::REGULAR);
-      break;
-    case DiceMode::Random10: {
-      drawCircle(renderer, cx, cy, 60, 1, true);
-      fillCircle(renderer, cx, cy, 56, false);
-      std::string valStr = std::to_string(lastRollRandom10);
-      int vW = renderer.getTextWidth(NOTOSANS_18_FONT_ID, valStr.c_str());
-      int vH = renderer.getTextHeight(NOTOSANS_18_FONT_ID);
-      renderer.drawText(NOTOSANS_18_FONT_ID, cx - vW / 2, cy - vH / 2, valStr.c_str(), true, EpdFontFamily::BOLD);
-      renderer.drawCenteredText(UI_12_FONT_ID, cardY + cardH - 45, "Press Confirm to Generate (0-10)", true, EpdFontFamily::REGULAR);
-      break;
-    }
     case DiceMode::Arrow:
-      drawArrow(cx, cy, 150, lastRollArrowDirection);
+      drawArrow(cx, cy, 150, lastRollArrowAngle);
       renderer.drawCenteredText(UI_12_FONT_ID, cardY + cardH - 45, "Press Confirm to Spin Arrow", true, EpdFontFamily::REGULAR);
       break;
     case DiceMode::D20:
       drawD20(cx, cy, 150, lastRollD20);
       renderer.drawCenteredText(UI_12_FONT_ID, cardY + cardH - 45, "Press Confirm to Roll D20", true, EpdFontFamily::REGULAR);
+      break;
+    case DiceMode::Magic8:
+      drawMagic8(cx, cy, 150, lastRollMagic8);
+      renderer.drawCenteredText(UI_12_FONT_ID, cardY + cardH - 45, "Press Confirm to Shake 8-Ball", true, EpdFontFamily::REGULAR);
       break;
   }
 

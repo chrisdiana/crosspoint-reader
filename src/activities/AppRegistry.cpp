@@ -106,7 +106,7 @@ AppRegistry::AppRegistry() {
   }));
 
   // RSS Feed App
-  apps.push_back(std::make_unique<App>("RSS Feed", UIIcon::Library, [](GfxRenderer& r, MappedInputManager& i) {
+  apps.push_back(std::make_unique<App>("RSS Feed", UIIcon::Wifi, [](GfxRenderer& r, MappedInputManager& i) {
     return std::make_unique<RssActivity>(r, i);
   }));
 }
