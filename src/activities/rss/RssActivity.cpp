@@ -675,8 +675,6 @@ void RssActivity::runBackgroundFetch() {
 
   if (cancelFetch) {
     fetchTaskHandle = nullptr;
-    WiFi.disconnect(true);
-    WiFi.mode(WIFI_OFF);
     return;
   }
 
@@ -704,9 +702,15 @@ void RssActivity::onExit() {
   if (fetchTaskHandle != nullptr) {
     cancelFetch = true;
     int waitCount = 0;
-    while (fetchTaskHandle != nullptr && waitCount < 50) {
+    while (fetchTaskHandle != nullptr && waitCount < 500) {
       delay(10);
       waitCount++;
+    }
+    if (fetchTaskHandle != nullptr) {
+      LOG_ERR("RSS", "Task failed to exit gracefully, forcing vTaskDelete!");
+      TaskHandle_t tempHandle = static_cast<TaskHandle_t>(fetchTaskHandle);
+      fetchTaskHandle = nullptr;
+      vTaskDelete(tempHandle);
     }
   }
   if (WiFi.getMode() != WIFI_MODE_NULL) {
@@ -746,9 +750,17 @@ void RssActivity::loop() {
     if (state == RssState::FeedList || state == RssState::Loading) {
       if (fetchTaskHandle != nullptr) {
         cancelFetch = true;
-      } else {
-        WiFi.disconnect(true);
-        WiFi.mode(WIFI_OFF);
+        int waitCount = 0;
+        while (fetchTaskHandle != nullptr && waitCount < 500) {
+          delay(10);
+          waitCount++;
+        }
+        if (fetchTaskHandle != nullptr) {
+          LOG_ERR("RSS", "Task failed to cancel! Forcing kill.");
+          TaskHandle_t tempHandle = static_cast<TaskHandle_t>(fetchTaskHandle);
+          fetchTaskHandle = nullptr;
+          vTaskDelete(tempHandle);
+        }
       }
       isRefreshing = false;
       pendingUpdateFeed = false;
@@ -792,27 +804,25 @@ void RssActivity::loop() {
                 state = RssState::FeedList;
                 isRefreshing = true;
                 requestUpdate();
-                GUI.drawPopup(renderer, "Connecting to WiFi...");
-                if (WifiConnectHelper::ensureWifiConnected()) {
+                ensureWifiConnected([this]() {
                   wifiWasUsed = true;
                   xTaskCreate(rssFetchTaskFunc, "rss_fetch", 8192, this, 5, (TaskHandle_t*)&fetchTaskHandle);
-                } else {
+                }, [this]() {
                   isRefreshing = false;
                   requestUpdate();
-                }
+                });
               } else {
                 state = RssState::Loading;
                 isRefreshing = true;
                 requestUpdate();
-                GUI.drawPopup(renderer, "Connecting to WiFi...");
-                if (WifiConnectHelper::ensureWifiConnected()) {
+                ensureWifiConnected([this]() {
                   wifiWasUsed = true;
                   xTaskCreate(rssFetchTaskFunc, "rss_fetch", 8192, this, 5, (TaskHandle_t*)&fetchTaskHandle);
-                } else {
+                }, [this]() {
                   state = RssState::FeedSelection;
                   isRefreshing = false;
                   requestUpdate();
-                }
+                });
               }
               return;
             }
@@ -833,29 +843,20 @@ void RssActivity::loop() {
         
         if (hasCache) {
           state = RssState::FeedList;
-          isRefreshing = true;
+          isRefreshing = false;
           requestUpdate();
-          GUI.drawPopup(renderer, "Connecting to WiFi...");
-          if (WifiConnectHelper::ensureWifiConnected()) {
-            wifiWasUsed = true;
-            xTaskCreate(rssFetchTaskFunc, "rss_fetch", 8192, this, 5, (TaskHandle_t*)&fetchTaskHandle);
-          } else {
-            isRefreshing = false;
-            requestUpdate();
-          }
         } else {
           state = RssState::Loading;
           isRefreshing = true;
           requestUpdate();
-          GUI.drawPopup(renderer, "Connecting to WiFi...");
-          if (WifiConnectHelper::ensureWifiConnected()) {
+          ensureWifiConnected([this]() {
             wifiWasUsed = true;
             xTaskCreate(rssFetchTaskFunc, "rss_fetch", 8192, this, 5, (TaskHandle_t*)&fetchTaskHandle);
-          } else {
+          }, [this]() {
             state = RssState::FeedSelection;
             isRefreshing = false;
             requestUpdate();
-          }
+          });
         }
       }
     } else if (mappedInput.wasReleased(MappedInputManager::Button::Right)) {
@@ -887,16 +888,14 @@ void RssActivity::loop() {
       isRefreshing = true;
       state = RssState::Loading;
       requestUpdate();
-      GUI.drawPopup(renderer, "Connecting to WiFi...");
-      if (WifiConnectHelper::ensureWifiConnected()) {
-        wifiWasUsed = true;
+      ensureWifiConnected([this]() {
         wifiWasUsed = true;
         xTaskCreate(rssFetchTaskFunc, "rss_fetch", 8192, this, 5, (TaskHandle_t*)&fetchTaskHandle);
-      } else {
+      }, [this]() {
         state = RssState::FeedList;
         isRefreshing = false;
         requestUpdate();
-      }
+      });
       return;
     }
     if (allItems.empty()) {
@@ -904,16 +903,14 @@ void RssActivity::loop() {
         isRefreshing = true;
         state = RssState::Loading;
         requestUpdate();
-        GUI.drawPopup(renderer, "Connecting to WiFi...");
-        if (WifiConnectHelper::ensureWifiConnected()) {
-          wifiWasUsed = true;
+        ensureWifiConnected([this]() {
           wifiWasUsed = true;
           xTaskCreate(rssFetchTaskFunc, "rss_fetch", 8192, this, 5, (TaskHandle_t*)&fetchTaskHandle);
-        } else {
+        }, [this]() {
           state = RssState::FeedList;
           isRefreshing = false;
           requestUpdate();
-        }
+        });
         return;
       }
     } else {

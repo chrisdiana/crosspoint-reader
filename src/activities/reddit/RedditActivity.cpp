@@ -134,20 +134,24 @@ void RedditActivity::onEnter() {
 
 void RedditActivity::onExit() {
   Activity::onExit();
-  {
-    RenderLock lock;
-    Storage.remove("/apps/reddit/image.bmp");
-    Storage.remove("/apps/reddit/image.tmp");
-  }
   DownloadWatchdog::stop();
   if (fetchTaskHandle != nullptr) {
     cancelFetch = true;
     int waitCount = 0;
-    while (fetchTaskHandle != nullptr && waitCount < 50) {
+    while (fetchTaskHandle != nullptr && waitCount < 500) {
       delay(10);
       waitCount++;
     }
+    if (fetchTaskHandle != nullptr) {
+      LOG_ERR("REDDIT", "Task failed to exit gracefully, forcing vTaskDelete!");
+      TaskHandle_t tempHandle = static_cast<TaskHandle_t>(fetchTaskHandle);
+      fetchTaskHandle = nullptr;
+      vTaskDelete(tempHandle);
+    }
   }
+  Storage.remove("/apps/reddit/image.bmp");
+  Storage.remove("/apps/reddit/image.tmp");
+  
   if (WiFi.getMode() != WIFI_MODE_NULL) {
     WiFi.disconnect(false);
     delay(30);
@@ -698,25 +702,37 @@ bool RedditActivity::fetchComments(const std::string &permalink) {
 
 void RedditActivity::performFetchPosts() {
   if (fetchTaskHandle != nullptr) return;
-  cancelFetch = false;
-  isRefreshing = true;
-  backgroundFetchFailed = false;
-  pendingUpdatePosts = false;
-  isFetchCommentsTask = false;
-
-  xTaskCreate(redditFetchTaskFunc, "red_fetch", 8192, this, 5, (TaskHandle_t*)&fetchTaskHandle);
+  ensureWifiConnected([this]() {
+    wifiWasUsed = true;
+    cancelFetch = false;
+    isRefreshing = true;
+    backgroundFetchFailed = false;
+    pendingUpdatePosts = false;
+    isFetchCommentsTask = false;
+    xTaskCreate(redditFetchTaskFunc, "red_fetch", 8192, this, 5, (TaskHandle_t*)&fetchTaskHandle);
+  }, [this]() {
+    state = RedditState::SubredditList;
+    isRefreshing = false;
+    requestUpdate();
+  });
 }
 
 void RedditActivity::performFetchComments() {
   if (fetchTaskHandle != nullptr) return;
-  cancelFetch = false;
-  errorMessage.clear();
-  backgroundFetchFailed = false;
-  pendingUpdateComments = false;
-  isFetchCommentsTask = true;
-  isRefreshing = true;
-
-  xTaskCreate(redditFetchTaskFunc, "red_fetch", 8192, this, 5, (TaskHandle_t*)&fetchTaskHandle);
+  ensureWifiConnected([this]() {
+    wifiWasUsed = true;
+    cancelFetch = false;
+    errorMessage.clear();
+    backgroundFetchFailed = false;
+    pendingUpdateComments = false;
+    isFetchCommentsTask = true;
+    isRefreshing = true;
+    xTaskCreate(redditFetchTaskFunc, "red_fetch", 8192, this, 5, (TaskHandle_t*)&fetchTaskHandle);
+  }, [this]() {
+    state = RedditState::PostList;
+    isRefreshing = false;
+    requestUpdate();
+  });
 }
 
 void RedditActivity::runBackgroundFetch() {
@@ -844,8 +860,6 @@ void RedditActivity::runBackgroundFetch() {
 
   if (cancelFetch) {
     fetchTaskHandle = nullptr;
-    WiFi.disconnect(true);
-    WiFi.mode(WIFI_OFF);
     return;
   }
 
@@ -944,9 +958,17 @@ void RedditActivity::loop() {
     if (state == RedditState::CommentsList || state == RedditState::LoadingComments) {
       if (fetchTaskHandle != nullptr) {
         cancelFetch = true;
-      } else {
-        WiFi.disconnect(true);
-        WiFi.mode(WIFI_OFF);
+        int waitCount = 0;
+        while (fetchTaskHandle != nullptr && waitCount < 500) {
+          delay(10);
+          waitCount++;
+        }
+        if (fetchTaskHandle != nullptr) {
+          LOG_ERR("REDDIT", "Task failed to cancel! Forcing kill.");
+          TaskHandle_t tempHandle = static_cast<TaskHandle_t>(fetchTaskHandle);
+          fetchTaskHandle = nullptr;
+          vTaskDelete(tempHandle);
+        }
       }
       isRefreshing = false;
       state = RedditState::PostList;
@@ -954,9 +976,17 @@ void RedditActivity::loop() {
     } else if (state == RedditState::PostList || state == RedditState::LoadingPosts) {
       if (fetchTaskHandle != nullptr) {
         cancelFetch = true;
-      } else {
-        WiFi.disconnect(true);
-        WiFi.mode(WIFI_OFF);
+        int waitCount = 0;
+        while (fetchTaskHandle != nullptr && waitCount < 500) {
+          delay(10);
+          waitCount++;
+        }
+        if (fetchTaskHandle != nullptr) {
+          LOG_ERR("REDDIT", "Task failed to cancel! Forcing kill.");
+          TaskHandle_t tempHandle = static_cast<TaskHandle_t>(fetchTaskHandle);
+          fetchTaskHandle = nullptr;
+          vTaskDelete(tempHandle);
+        }
       }
       isRefreshing = false;
       pendingFetch = false;
@@ -1002,27 +1032,13 @@ void RedditActivity::loop() {
                     errorMessage = "";
                     if (hasCache) {
                       state = RedditState::PostList;
-                      isRefreshing = true;
+                      isRefreshing = false;
                       requestUpdate();
-                      ensureWifiConnected([this]() {
-                        pendingFetch = true;
-                        requestUpdate();
-                      }, [this]() {
-                        isRefreshing = false;
-                        requestUpdate();
-                      });
                     } else {
                       state = RedditState::LoadingPosts;
                       isRefreshing = true;
                       requestUpdate();
-                      ensureWifiConnected([this]() {
-                        pendingFetch = true;
-                        requestUpdate();
-                      }, [this]() {
-                        state = RedditState::SubredditList;
-                        isRefreshing = false;
-                        requestUpdate();
-                      });
+                      performFetchPosts();
                     }
                     return;
                   }
@@ -1042,27 +1058,13 @@ void RedditActivity::loop() {
         errorMessage = "";
         if (hasCache) {
           state = RedditState::PostList;
-          isRefreshing = true;
+          isRefreshing = false;
           requestUpdate();
-          ensureWifiConnected([this]() {
-            pendingFetch = true;
-            requestUpdate();
-          }, [this]() {
-            isRefreshing = false;
-            requestUpdate();
-          });
         } else {
           state = RedditState::LoadingPosts;
           isRefreshing = true;
           requestUpdate();
-          ensureWifiConnected([this]() {
-            pendingFetch = true;
-            requestUpdate();
-          }, [this]() {
-            state = RedditState::SubredditList;
-            isRefreshing = false;
-            requestUpdate();
-          });
+          performFetchPosts();
         }
       }
     } else if (mappedInput.wasReleased(MappedInputManager::Button::Right)) {
