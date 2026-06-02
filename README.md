@@ -1,7 +1,7 @@
 # CrossPoint Apps
 
 
-**CrossPoint Apps** is a community-driven fork of the original CrossPoint Reader project. While the upstream project focuses solely on e-reading, this fork expands the capabilities of the Xteink X4 device by supporting a robust ecosystem of **apps and utilities**. 
+**CrossPoint Apps** is a community-driven fork of the original [CrossPoint Reader](https://github.com/cross-point-reader/crosspoint-reader) project. While the upstream project focuses solely on e-reading, this fork expands the capabilities of the Xteink X4 device by supporting a robust ecosystem of **apps and utilities**. 
 
 Our goal is to make the device more useful in your day-to-day life without compromising its battery life, stability, or its core mission as an distraction-free e-ink reader.
 
