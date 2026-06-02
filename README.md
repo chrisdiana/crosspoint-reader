@@ -19,7 +19,7 @@ In addition to all the fantastic EPUB rendering, custom fonts, and library manag
 - **Weather**: View local forecasts. Fetches data when connected to Wi-Fi and caches it locally so you can check the weather even when offline.
 - **Sudoku**: Play randomly generated Sudoku puzzles. Fully playable offline.
 - **Wikipedia**: Search for topics and download complete, text-only Wikipedia articles to your SD card for offline reference.
-- **Chess**: A fully featured chess engine. Play against the computer directly on your e-reader.
+- **Chess**: A fully featured chess engine. Play against your friend.
 - **Dice & 8-Ball**: A handy utility for tabletop gamers. Roll D6, D20, spin arrows, flip coins, or consult the Magic 8-Ball.
 - **RSS Feed & Reddit**: Subscribe to your favorite blogs and news sites. Articles are downloaded and cached for distraction-free, offline reading using the native text reader engine.
 - **DuckDuckGo**: Search the web using DuckDuckGo. Results are displayed in a text-heavy format optimized for e-ink displays.
