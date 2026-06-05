@@ -166,12 +166,11 @@ void XMLCALL RssParser::startElement(void* userData, const XML_Char* name, const
     return;
   }
 
-  const bool textElement = elementMatches(name, "title") || elementMatches(name, "link") ||
-                           elementMatches(name, "description") || elementMatches(name, "encoded") ||
-                           elementMatches(name, "creator") || elementMatches(name, "author") ||
-                           elementMatches(name, "pubDate") || elementMatches(name, "updated") ||
-                           elementMatches(name, "published") || elementMatches(name, "guid") ||
-                           elementMatches(name, "content") || elementMatches(name, "summary");
+  const bool textElement =
+      elementMatches(name, "title") || elementMatches(name, "link") || elementMatches(name, "description") ||
+      elementMatches(name, "encoded") || elementMatches(name, "creator") || elementMatches(name, "author") ||
+      elementMatches(name, "pubDate") || elementMatches(name, "updated") || elementMatches(name, "published") ||
+      elementMatches(name, "guid") || elementMatches(name, "content") || elementMatches(name, "summary");
 
   if (!textElement) return;
 
@@ -206,9 +205,9 @@ void XMLCALL RssParser::endElement(void* userData, const XML_Char* name) {
     return;
   }
 
-  if (!self->inTextElement || !elementMatches(name, strrchr(self->currentElement.c_str(), ':')
-                                                       ? strrchr(self->currentElement.c_str(), ':') + 1
-                                                       : self->currentElement.c_str())) {
+  if (!self->inTextElement ||
+      !elementMatches(name, strrchr(self->currentElement.c_str(), ':') ? strrchr(self->currentElement.c_str(), ':') + 1
+                                                                       : self->currentElement.c_str())) {
     return;
   }
 
@@ -226,7 +225,8 @@ void XMLCALL RssParser::endElement(void* userData, const XML_Char* name) {
       if (self->currentItem.content.empty()) self->currentItem.content = text;
     } else if (elementMatches(name, "creator") || elementMatches(name, "author")) {
       self->currentItem.author = text;
-    } else if (elementMatches(name, "pubDate") || elementMatches(name, "updated") || elementMatches(name, "published")) {
+    } else if (elementMatches(name, "pubDate") || elementMatches(name, "updated") ||
+               elementMatches(name, "published")) {
       self->currentItem.published = text;
     } else if (elementMatches(name, "guid")) {
       self->currentItem.guid = text;

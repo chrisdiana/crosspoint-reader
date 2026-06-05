@@ -1,8 +1,7 @@
 #pragma once
+#include "RssFeedStore.h"
 #include "activities/Activity.h"
 #include "util/ButtonNavigator.h"
-
-#include "RssFeedStore.h"
 
 class RssSettingsActivity final : public Activity {
  public:

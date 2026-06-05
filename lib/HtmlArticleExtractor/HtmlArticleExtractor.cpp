@@ -2,8 +2,8 @@
 
 #include <algorithm>
 #include <cctype>
-#include <cstring>
 #include <cstdlib>
+#include <cstring>
 #include <string_view>
 
 namespace {
@@ -57,7 +57,8 @@ void trimInPlace(std::string& value) {
 }
 
 bool tagNameBoundary(std::string_view text, size_t pos) {
-  return pos >= text.size() || text[pos] == '>' || text[pos] == '/' || std::isspace(static_cast<unsigned char>(text[pos]));
+  return pos >= text.size() || text[pos] == '>' || text[pos] == '/' ||
+         std::isspace(static_cast<unsigned char>(text[pos]));
 }
 
 bool tagMatches(const std::string& tagLower, const char* name) {
@@ -341,7 +342,8 @@ void normalizeTextInto(std::string& normalized, std::string_view text) {
           if (tagMatches(tagLower, skipTag)) {
             const std::string closeTag = std::string("</") + skipTag;
             const size_t closeStart = findCaseInsensitive(text, closeTag.c_str(), tagEnd + 1);
-            const size_t closeEnd = closeStart != std::string::npos ? findChar(text, '>', closeStart) : std::string::npos;
+            const size_t closeEnd =
+                closeStart != std::string::npos ? findChar(text, '>', closeStart) : std::string::npos;
             i = closeEnd != std::string::npos ? closeEnd : text.size() - 1;
             skipped = true;
             break;
@@ -396,9 +398,9 @@ std::string htmlToText(std::string_view html) {
       if (c == '<') {
         const size_t tagEnd = findChar(html, '>', i + 1);
         if (tagEnd == std::string::npos) break;
-        const std::string tagLower = toLowerAscii(std::string(html.substr(i + 1, std::min<size_t>(tagEnd - i - 1, 32))));
-        const char* skipTags[] = {"script", "style", "noscript", "svg", "nav", "footer", "aside",
-                                 "template", "iframe"};
+        const std::string tagLower =
+            toLowerAscii(std::string(html.substr(i + 1, std::min<size_t>(tagEnd - i - 1, 32))));
+        const char* skipTags[] = {"script", "style", "noscript", "svg", "nav", "footer", "aside", "template", "iframe"};
         bool skipped = false;
         for (const char* skipTag : skipTags) {
           if (tagMatches(tagLower, skipTag)) {
@@ -546,12 +548,10 @@ TextMetrics analyzeContent(std::string_view html) {
 
     // Skip non-text element content entirely (incl. nav/footer/aside so their
     // links don't inflate link density and disqualify real article blocks)
-    const char* skipContentTags[] = {"script", "style", "noscript", "svg",
-                                     "nav", "footer", "aside"};
+    const char* skipContentTags[] = {"script", "style", "noscript", "svg", "nav", "footer", "aside"};
     bool skipped = false;
     for (const char* skipTag : skipContentTags) {
-      if (!closing && startsWithAtCaseInsensitive(html, ns, skipTag) &&
-          tagNameBoundary(html, ns + strlen(skipTag))) {
+      if (!closing && startsWithAtCaseInsensitive(html, ns, skipTag) && tagNameBoundary(html, ns + strlen(skipTag))) {
         char closeTag[12] = "</";
         strncat(closeTag, skipTag, sizeof(closeTag) - 3);
         const size_t closePos = findCaseInsensitive(html, closeTag, tagEnd + 1);
@@ -569,7 +569,10 @@ TextMetrics analyzeContent(std::string_view html) {
 
     // Track <a> depth to measure link density
     if (startsWithAtCaseInsensitive(html, ns, "a") && tagNameBoundary(html, ns + 1)) {
-      if (closing) { if (linkDepth > 0) linkDepth--; } else linkDepth++;
+      if (closing) {
+        if (linkDepth > 0) linkDepth--;
+      } else
+        linkDepth++;
     }
     // <p> tags signal prose structure
     if (!closing && startsWithAtCaseInsensitive(html, ns, "p") && tagNameBoundary(html, ns + 1)) {
@@ -587,31 +590,28 @@ int readabilityScore(std::string_view content, std::string_view tagHtml) {
   const TextMetrics m = analyzeContent(content);
   if (m.textLen < 25) return 0;
 
-  const float linkDensity =
-      static_cast<float>(m.linkTextLen) / static_cast<float>(m.textLen);
+  const float linkDensity = static_cast<float>(m.linkTextLen) / static_cast<float>(m.textLen);
   if (linkDensity > 0.5f) return 0;  // navigation or link-list block
 
-  int score = static_cast<int>(m.textLen / 10)
-            + static_cast<int>(std::min(m.commas, size_t{10}) * 3)
-            + static_cast<int>(m.paragraphs * 2);
+  int score = static_cast<int>(m.textLen / 10) + static_cast<int>(std::min(m.commas, size_t{10}) * 3) +
+              static_cast<int>(m.paragraphs * 2);
   score = static_cast<int>(static_cast<float>(score) * (1.0f - linkDensity));
 
   // Negative patterns: hard-reject these blocks (from Mozilla Readability pattern list)
-  const char* negativeHints[] = {
-    "comment", "sidebar", "banner", "advertisement", "widget",
-    "related", "social", "footer", "promo", "popup", "newsletter",
-    "subscribe", "masthead", "sponsor", "combx", "shoutbox"
-  };
+  const char* negativeHints[] = {"comment",  "sidebar", "banner", "advertisement", "widget",     "related",
+                                 "social",   "footer",  "promo",  "popup",         "newsletter", "subscribe",
+                                 "masthead", "sponsor", "combx",  "shoutbox"};
   for (const char* hint : negativeHints) {
     if (findCaseInsensitive(tagHtml, hint) != std::string::npos) return 0;
   }
 
   // Positive patterns: these blocks likely contain article body text
-  const char* positiveHints[] = {
-    "article", "content", "post", "story", "entry", "body", "main", "text", "hentry"
-  };
+  const char* positiveHints[] = {"article", "content", "post", "story", "entry", "body", "main", "text", "hentry"};
   for (const char* hint : positiveHints) {
-    if (findCaseInsensitive(tagHtml, hint) != std::string::npos) { score += 25; break; }
+    if (findCaseInsensitive(tagHtml, hint) != std::string::npos) {
+      score += 25;
+      break;
+    }
   }
 
   return std::max(0, score);
@@ -634,7 +634,10 @@ std::string_view selectReadableContent(std::string_view html) {
     size_t pos = 0;
     while ((pos = findCaseInsensitive(html, open.c_str(), pos)) != std::string::npos) {
       const size_t nameEnd = pos + open.size();
-      if (!tagNameBoundary(html, nameEnd)) { pos = nameEnd; continue; }
+      if (!tagNameBoundary(html, nameEnd)) {
+        pos = nameEnd;
+        continue;
+      }
       const size_t startEnd = findChar(html, '>', pos);
       if (startEnd == std::string::npos) break;
 

@@ -60,10 +60,10 @@ size_t findCaseInsensitive(const std::string& text, const char* needle, size_t s
 
 std::string resolveArticleUrl(const std::string& baseUrl, const std::string& href) {
   if (href.empty()) return {};
-  if (href.find("http://") == 0 || href.find("https://") == 0) return href;
+  if (href.starts_with("http://") || href.starts_with("https://")) return href;
   const size_t schemeEnd = baseUrl.find("://");
   if (schemeEnd == std::string::npos) return {};
-  if (href.find("//") == 0) return baseUrl.substr(0, schemeEnd) + ":" + href;
+  if (href.starts_with("//")) return baseUrl.substr(0, schemeEnd) + ":" + href;
 
   const size_t hostStart = schemeEnd + 3;
   const size_t pathStart = baseUrl.find('/', hostStart);
@@ -144,8 +144,7 @@ void stripBlocksForSearch(std::string& s, const char* openTag, const char* close
     const size_t open = findCaseInsensitive(s, openTag, pos);
     if (open == std::string::npos) break;
     const size_t nameEnd = open + openTagLen;
-    if (nameEnd < s.size() && s[nameEnd] != '>' &&
-        !std::isspace(static_cast<unsigned char>(s[nameEnd]))) {
+    if (nameEnd < s.size() && s[nameEnd] != '>' && !std::isspace(static_cast<unsigned char>(s[nameEnd]))) {
       pos = nameEnd;
       continue;
     }
@@ -180,33 +179,48 @@ size_t findMarkerNotInCss(const std::string& html, const char* marker, size_t st
 bool findArticleMarker(const std::string& html, size_t& markerPos) {
   // Structural markers: safe to match anywhere — these strings never appear as CSS selectors.
   const char* structural[] = {
-    "articlebody",       // JSON-LD / generic JSON key
-    "<article",          // HTML5 article element (includes the '<')
-    "mw-parser-output",  // MediaWiki
-    "__NEXT_DATA__",     // Next.js SSR JSON payload
-    "w-richtext",        // Webflow (not a CSS name pattern)
+      "articlebody",       // JSON-LD / generic JSON key
+      "<article",          // HTML5 article element (includes the '<')
+      "mw-parser-output",  // MediaWiki
+      "__NEXT_DATA__",     // Next.js SSR JSON payload
+      "w-richtext",        // Webflow (not a CSS name pattern)
   };
 
   // Class / id name markers: only match when NOT preceded by '.' or '#'
   // (i.e. must appear in an HTML attribute, not a CSS rule).
   const char* classNames[] = {
-    // WordPress core
-    "entry-content",    "post-content",    "post-body",       "the-content",
-    "hentry",           "single-content",  "td-post-content",
-    // Ghost CMS
-    "gh-content",       "post-full-content",
-    // Medium
-    "section-inner",
-    // Vox Media
-    "c-entry-content",
-    // BEM patterns
-    "article__body",    "article__content", "post__body",     "post__content",
-    // Generic news / blog
-    "article-content",  "article-body",    "story-body",
-    "body-content",     "main-content",    "content-body",
-    "caas-body",        "article-text",    "entry__body",
-    // Drupal
-    "field-item",
+      // WordPress core
+      "entry-content",
+      "post-content",
+      "post-body",
+      "the-content",
+      "hentry",
+      "single-content",
+      "td-post-content",
+      // Ghost CMS
+      "gh-content",
+      "post-full-content",
+      // Medium
+      "section-inner",
+      // Vox Media
+      "c-entry-content",
+      // BEM patterns
+      "article__body",
+      "article__content",
+      "post__body",
+      "post__content",
+      // Generic news / blog
+      "article-content",
+      "article-body",
+      "story-body",
+      "body-content",
+      "main-content",
+      "content-body",
+      "caas-body",
+      "article-text",
+      "entry__body",
+      // Drupal
+      "field-item",
   };
 
   bool found = false;
@@ -243,7 +257,7 @@ std::string wikipediaRenderUrl(const std::string& url) {
   const std::string title = url.substr(pathStart + 6, titleEnd - pathStart - 6);
   return url.substr(0, schemeEnd + 3) + host + "/w/index.php?title=" + title + "&action=render";
 }
-}
+}  // namespace
 
 void RssFeedBrowserActivity::onEnter() {
   Activity::onEnter();
@@ -443,7 +457,7 @@ void RssFeedBrowserActivity::openItem(const RssItem& item) {
 }
 
 std::string RssFeedBrowserActivity::fetchArticleText(const RssItem& item) {
-  if (item.link.find("http://") != 0 && item.link.find("https://") != 0) {
+  if (!item.link.starts_with("http://") && !item.link.starts_with("https://")) {
     LOG_DBG("RSS", "Article link is not fetchable: %s", item.link.c_str());
     return {};
   }
@@ -546,8 +560,8 @@ std::string RssFeedBrowserActivity::fetchArticleText(const RssItem& item) {
     }
 
     const size_t maxAlloc = ESP.getMaxAllocHeap();
-    const size_t readBytes =
-        std::min(htmlBytes, maxAlloc > ARTICLE_EXTRACT_HEAP_RESERVE_BYTES ? maxAlloc - ARTICLE_EXTRACT_HEAP_RESERVE_BYTES : 0);
+    const size_t readBytes = std::min(
+        htmlBytes, maxAlloc > ARTICLE_EXTRACT_HEAP_RESERVE_BYTES ? maxAlloc - ARTICLE_EXTRACT_HEAP_RESERVE_BYTES : 0);
     if (readBytes < 4096) {
       LOG_ERR("RSS", "Not enough heap to load article HTML: bytes=%zu max=%zu", htmlBytes, maxAlloc);
       Storage.remove(ARTICLE_TMP_FILE);

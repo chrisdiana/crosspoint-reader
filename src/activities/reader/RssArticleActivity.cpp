@@ -145,8 +145,8 @@ void RssArticleActivity::renderPage() {
         int x = marginLeft;
         uint8_t effectiveAlignment = SETTINGS.paragraphAlignment;
         const bool lineIsRtl = BidiUtils::startsWithRtl(line.c_str(), BidiUtils::RTL_PARAGRAPH_PROBE_DEPTH);
-        if (lineIsRtl &&
-            (effectiveAlignment == CrossPointSettings::LEFT_ALIGN || effectiveAlignment == CrossPointSettings::JUSTIFIED)) {
+        if (lineIsRtl && (effectiveAlignment == CrossPointSettings::LEFT_ALIGN ||
+                          effectiveAlignment == CrossPointSettings::JUSTIFIED)) {
           effectiveAlignment = CrossPointSettings::RIGHT_ALIGN;
         }
         const int textWidth = renderer.getTextAdvanceX(fontId, line.c_str(), EpdFontFamily::REGULAR);

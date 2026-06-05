@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 
-#include <cstring>
 #include <algorithm>
-#include <string>
+#include <cstring>
 #include <memory>
+#include <string>
 
 #include "RssParser.h"
 

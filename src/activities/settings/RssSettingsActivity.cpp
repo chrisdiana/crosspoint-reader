@@ -87,10 +87,9 @@ void RssSettingsActivity::handleSelection() {
         requestUpdate();
       }
     };
-    startActivityForResult(
-        std::make_unique<KeyboardEntryActivity>(renderer, mappedInput, tr(STR_FEED_NAME), editFeed.name, 63,
-                                                InputType::Text),
-        handler);
+    startActivityForResult(std::make_unique<KeyboardEntryActivity>(renderer, mappedInput, tr(STR_FEED_NAME),
+                                                                   editFeed.name, 63, InputType::Text),
+                           handler);
   } else if (selectedIndex == 1) {
     const std::string prefillUrl = editFeed.url.empty() ? "https://" : editFeed.url;
     auto handler = [this](const ActivityResult& result) {
@@ -101,10 +100,9 @@ void RssSettingsActivity::handleSelection() {
         requestUpdate();
       }
     };
-    startActivityForResult(
-        std::make_unique<KeyboardEntryActivity>(renderer, mappedInput, tr(STR_RSS_FEED_URL), prefillUrl, 127,
-                                                InputType::Url),
-        handler);
+    startActivityForResult(std::make_unique<KeyboardEntryActivity>(renderer, mappedInput, tr(STR_RSS_FEED_URL),
+                                                                   prefillUrl, 127, InputType::Url),
+                           handler);
   } else if (selectedIndex == 2) {
     auto handler = [this](const ActivityResult& result) {
       if (!result.isCancelled) {
@@ -113,10 +111,9 @@ void RssSettingsActivity::handleSelection() {
         requestUpdate();
       }
     };
-    startActivityForResult(
-        std::make_unique<KeyboardEntryActivity>(renderer, mappedInput, tr(STR_USERNAME), editFeed.username, 63,
-                                                InputType::Text),
-        handler);
+    startActivityForResult(std::make_unique<KeyboardEntryActivity>(renderer, mappedInput, tr(STR_USERNAME),
+                                                                   editFeed.username, 63, InputType::Text),
+                           handler);
   } else if (selectedIndex == 3) {
     auto handler = [this](const ActivityResult& result) {
       if (!result.isCancelled) {
@@ -125,10 +122,9 @@ void RssSettingsActivity::handleSelection() {
         requestUpdate();
       }
     };
-    startActivityForResult(
-        std::make_unique<KeyboardEntryActivity>(renderer, mappedInput, tr(STR_PASSWORD), editFeed.password, 63,
-                                                InputType::Password),
-        handler);
+    startActivityForResult(std::make_unique<KeyboardEntryActivity>(renderer, mappedInput, tr(STR_PASSWORD),
+                                                                   editFeed.password, 63, InputType::Password),
+                           handler);
   } else if (selectedIndex == 4 && !isNewFeed) {
     if (!RSS_STORE.removeFeed(static_cast<size_t>(feedIndex))) {
       LOG_ERR("RSS", "Failed to remove RSS feed at index %d", feedIndex);
